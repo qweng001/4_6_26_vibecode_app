@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Finance Manager</title>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { text-align: center; margin-top: 0; }
+        .balance-card { background: var(--dark); color: white; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
+        .balance-amount { font-size: 2.5rem; font-weight: bold; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 5px; flex: 1; min-width: 120px; }
+        button { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
+        .btn-income { background: var(--primary); color: white; }
+        .btn-expense { background: var(--danger); color: white; }
+        .history { border-top: 1px solid #eee; padding-top: 20px; }
+        .transaction-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #fafafa; }
+        .amount-pos { color: var(--primary); font-weight: bold; }
+        .amount-neg { color: var(--danger); font-weight: bold; }
+        .clear-btn { background: none; color: #999; font-size: 0.8rem; border: none; cursor: pointer; display: block; margin: 20px auto 0; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Financial Manager</h2>
+    
+    <div class="balance-card">
+        <div>Current Balance</div>
+        <div class="balance-amount" id="balance">$0.00</div>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="desc" placeholder="Description (e.g. Salary, Rent)">
+        <input type="number" id="amount" placeholder="Amount ($)">
+        <button class="btn-income" onclick="addTransaction('income')">+ Income</button>
+        <button class="btn-expense" onclick="addTransaction('expense')">- Expense</button>
+    </div>
+
+    <div class="history">
+        <h3>History</h3>
+        <div id="transaction-list"></div>
+    </div>
+
+    <button class="clear-btn" onclick="clearData()">Clear All Data</button>
+</div>
+
+<script>
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+    function updateUI() {
+        const list = document.getElementById('transaction-list');
+        const balanceDisplay = document.getElementById('balance');
+        list.innerHTML = '';
+        
+        let total = 0;
+
+        transactions.forEach((t, index) => {
+            const amount = t.type === 'income' ? t.amount : -t.amount;
+            total += amount;
+
+            const div = document.createElement('div');
+            div.className = 'transaction-item';
+            div.innerHTML = `
+                <span>${t.desc}</span>
+                <span class="${t.type === 'income' ? 'amount-pos' : 'amount-neg'}">
+                    ${t.type === 'income' ? '+' : '-'}$${t.amount.toFixed(2)}
+                </span>
+            `;
+            list.appendChild(div);
+        });
+
+        balanceDisplay.innerText = `$${total.toFixed(2)}`;
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+    }
+
+    function addTransaction(type) {
+        const desc = document.getElementById('desc').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+
+        if (!desc || isNaN(amount)) {
+            alert("Please enter a valid description and amount!");
+            return;
+        }
+
+        transactions.unshift({ desc, amount, type });
+        document.getElementById('desc').value = '';
+        document.getElementById('amount').value = '';
+        updateUI();
+    }
+
+    function clearData() {
+        if(confirm("Are you sure you want to delete everything?")) {
+            transactions = [];
+            updateUI();
+        }
+    }
+
+    // Initialize UI on load
+    updateUI();
+</script>
+
+</body>
+</html>
