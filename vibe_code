@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo-Location Canvas</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute; top: 20px; left: 20px; color: white;
+            pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .btn {
+            pointer-events: auto; background: white; color: black;
+            border: none; padding: 10px 20px; cursor: pointer; border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>Echo-Location Canvas</h1>
+        <p>Make sound to paint. Tilt or move to flow.</p>
+        <button class="btn" onclick="init()">Start Experience</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let audioContext, analyser, microphone, dataArray;
+        let particles = [];
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, color, size) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = size;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+            }
+            update(volume) {
+                this.x += this.vx * (volume * 0.1);
+                this.y += this.vy * (volume * 0.1);
+                this.size *= 0.98; // Fade out
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        async function init() {
+            document.querySelector('.btn').style.display = 'none';
+            
+            // Setup Audio
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            microphone = audioContext.createMediaStreamSource(stream);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            microphone.connect(analyser);
+            
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            analyser.getByteFrequencyData(dataArray);
+
+            // Get average volume and dominant frequency
+            let sum = 0;
+            let maxVal = 0;
+            let maxIndex = 0;
+            for(let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+                if(dataArray[i] > maxVal) {
+                    maxVal = dataArray[i];
+                    maxIndex = i;
+                }
+            }
+            let average = sum / dataArray.length;
+
+            // Create particles if there is sound
+            if (average > 10) {
+                const hue = maxIndex * 2; // Map frequency to color
+                for(let i = 0; i < 5; i++) {
+                    particles.push(new Particle(
+                        canvas.width / 2 + (Math.random() - 0.5) * 200,
+                        canvas.height / 2 + (Math.random() - 0.5) * 200,
+                        `hsla(${hue}, 80%, 60%, 0.8)`,
+                        average / 2
+                    ));
+                }
+            }
+
+            // Draw & Update
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.05)'; // Trail effect
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p, index) => {
+                p.update(average);
+                p.draw();
+                if (p.size < 0.5) particles.splice(index, 1);
+            });
+        }
+    </script>
+</body>
+</html>
