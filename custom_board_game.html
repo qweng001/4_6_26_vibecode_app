@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎲 WHO DONE IT? — Party Dice Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #2d1457;
+    --panel2: #3b1a6e;
+    --gold: #f7c948;
+    --red: #ff4f6d;
+    --green: #3ddc84;
+    --blue: #4fc3f7;
+    --purple: #b388ff;
+    --orange: #ffab40;
+    --pink: #f06292;
+    --shadow: 0 8px 32px rgba(0,0,0,0.55);
+    --radius: 22px;
+    --card: #231040;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 0%, #3d1080 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 100%, #1a0a5e 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    text-align: center;
+    padding: 28px 20px 10px;
+    position: relative;
+  }
+  .title-wrap {
+    display: inline-block;
+    position: relative;
+  }
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.4rem, 7vw, 4.5rem);
+    color: var(--gold);
+    text-shadow: 4px 4px 0 #a0520a, 0 0 40px rgba(247,201,72,0.4);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .subtitle {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+    color: var(--purple);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
+    text-shadow: 2px 2px 0 #4a0080;
+  }
+  .magnify { font-size: 2.2rem; display: inline; vertical-align: middle; }
+
+  /* ─── SETUP SCREEN ─── */
+  #setup-screen {
+    max-width: 620px;
+    margin: 30px auto;
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    box-shadow: var(--shadow), 0 0 0 3px var(--gold);
+  }
+  .setup-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.9rem;
+    color: var(--gold);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 10px 16px;
+    transition: transform 0.2s;
+  }
+  .player-row:hover { transform: scale(1.01); }
+  .player-avatar { font-size: 2rem; }
+  .player-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--purple);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    outline: none;
+    padding: 4px 0;
+  }
+  .player-name-input::placeholder { color: #7a5faa; }
+  .color-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+  .btn {
+    display: inline-block;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.25rem;
+    padding: 12px 32px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    text-decoration: none;
+  }
+  .btn:hover { transform: translateY(-3px) scale(1.04); }
+  .btn:active { transform: translateY(1px) scale(0.98); }
+  .btn-gold {
+    background: linear-gradient(135deg, #f7c948 0%, #f0940a 100%);
+    color: #1a0a2e;
+    box-shadow: 0 6px 0 #a0520a, var(--shadow);
+  }
+  .btn-red {
+    background: linear-gradient(135deg, #ff4f6d 0%, #c00030 100%);
+    color: #fff;
+    box-shadow: 0 6px 0 #800020, var(--shadow);
+  }
+  .btn-green {
+    background: linear-gradient(135deg, #3ddc84 0%, #00aa44 100%);
+    color: #003318;
+    box-shadow: 0 6px 0 #006622, var(--shadow);
+  }
+  .btn-sm {
+    font-size: 1rem;
+    padding: 8px 20px;
+  }
+  .center { text-align: center; }
+
+  /* ─── GAME SCREEN ─── */
+  #game-screen { display: none; max-width: 1100px; margin: 0 auto; padding: 0 16px 40px; }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  @media(max-width: 700px) {
+    .game-layout { grid-template-columns: 1fr; }
+  }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .panel-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: var(--gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* PLAYER CARDS */
+  .player-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--card);
+    margin-bottom: 8px;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+  .player-card.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(247,201,72,0.35);
+    transform: scale(1.03);
+  }
+  .player-card.eliminated { opacity: 0.35; filter: grayscale(1); }
+  .pcard-avatar { font-size: 1.6rem; }
+  .pcard-name { font-weight: 800; font-size: 1rem; flex: 1; }
+  .pcard-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    color: var(--gold);
+  }
+  .pcard-badge { font-size: 0.75rem; margin-left: 4px; }
+  .turn-arrow { font-size: 1.2rem; animation: bounce 0.6s infinite alternate; }
+  @keyframes bounce { from { transform: translateX(0); } to { transform: translateX(6px); } }
+
+  /* MAIN AREA */
+  .main-area { display: flex; flex-direction: column; gap: 16px; }
+
+  /* CURRENT TURN BANNER */
+  .turn-banner {
+    background: linear-gradient(135deg, var(--panel2), #4a1080);
+    border-radius: var(--radius);
+    padding: 18px 28px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 2px solid var(--purple);
+  }
+  .turn-ava { font-size: 3rem; }
+  .turn-info { flex: 1; }
+  .turn-label {
+    font-size: 0.8rem;
+    color: var(--purple);
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .turn-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: #fff;
+  }
+  .turn-action { font-size: 0.95rem; color: #c0a0e0; font-weight: 600; margin-top: 2px; }
+
+  /* DICE AREA */
+  .dice-section {
+    background: var(--panel);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .dice-row {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 18px 0;
+  }
+  .die {
+    width: 80px; height: 80px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 0 #bbb, inset 0 2px 6px rgba(0,0,0,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.8rem;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .die.rolling {
+    animation: dieRoll 0.5s ease-in-out;
+  }
+  @keyframes dieRoll {
+    0%   { transform: rotate(0deg) scale(1); }
+    25%  { transform: rotate(-20deg) scale(0.85); }
+    50%  { transform: rotate(15deg) scale(1.1); }
+    75%  { transform: rotate(-10deg) scale(0.9); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  .die-label { font-size: 0.7rem; font-weight: 800; color: #888; display: block; text-align: center; margin-top: -6px; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* CHALLENGE CARD */
+  .challenge-card {
+    background: linear-gradient(135deg, #2d1060, #4a1590);
+    border: 3px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow), 0 0 30px rgba(247,201,72,0.15);
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .challenge-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: rgba(247,201,72,0.08);
+    border-radius: 50%;
+  }
+  .challenge-type {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 50px;
+    background: var(--gold);
+    color: #1a0a2e;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .challenge-icon { font-size: 2.8rem; }
+  .challenge-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.1rem, 3vw, 1.55rem);
+    color: #fff;
+    line-height: 1.3;
+    max-width: 540px;
+  }
+  .challenge-target { color: var(--gold); }
+
+  /* LOG */
+  .log-panel { max-height: 180px; overflow-y: auto; }
+  .log-entry {
+    font-size: 0.88rem;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: #c0a8e8;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: #7a5faa; font-size: 0.75rem; flex-shrink: 0; padding-top: 2px; }
+  .log-msg { flex: 1; }
+  .log-panel::-webkit-scrollbar { width: 4px; }
+  .log-panel::-webkit-scrollbar-thumb { background: #7a5faa; border-radius: 4px; }
+
+  /* ACTION BUTTONS */
+  .action-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  /* MINI SUSPECT TRACKER */
+  .suspect-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .suspect-chip {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .suspect-chip.cleared {
+    filter: grayscale(1);
+    opacity: 0.4;
+    border-color: var(--red);
+  }
+  .suspect-chip.starred { border-color: var(--gold); box-shadow: 0 0 10px rgba(247,201,72,0.4); }
+  .suspect-name { font-size: 0.65rem; font-weight: 800; color: #c0a0e0; display: block; }
+  .cleared-x { position: absolute; top: 2px; right: 4px; color: var(--red); font-size: 0.8rem; font-weight: 900; }
+
+  /* WIN SCREEN */
+  #win-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,0,30,0.88);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .win-box {
+    background: var(--panel);
+    border: 4px solid var(--gold);
+    border-radius: 28px;
+    padding: 48px 52px;
+    text-align: center;
+    box-shadow: var(--shadow), 0 0 80px rgba(247,201,72,0.3);
+    max-width: 520px;
+    width: 90%;
+    animation: popIn 0.5s cubic-bezier(.17,.67,.4,1.4) both;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+  }
+  .win-trophy { font-size: 5rem; margin-bottom: 12px; animation: spin 2s infinite linear; display: block; }
+  @keyframes spin { from { transform: rotate(-10deg) scale(1); } 50% { transform: rotate(10deg) scale(1.1); } to { transform: rotate(-10deg) scale(1); } }
+  .win-title { font-family: 'Fredoka One', cursive; font-size: 3rem; color: var(--gold); text-shadow: 4px 4px 0 #a0520a; }
+  .win-name { font-family: 'Fredoka One', cursive; font-size: 2rem; color: #fff; margin: 8px 0; }
+  .win-sub { color: #c0a0e0; font-size: 1rem; font-weight: 600; margin-bottom: 24px; }
+  .confetti { font-size: 1.8rem; animation: confettiFall 2s infinite; display: inline-block; }
+  @keyframes confettiFall { 0%,100%{transform:translateY(0) rotate(0);} 50%{transform:translateY(10px) rotate(20deg);} }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    top: 24px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--gold);
+    color: #1a0a2e;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    padding: 12px 32px;
+    border-radius: 50px;
+    box-shadow: var(--shadow);
+    z-index: 200;
+    transition: transform 0.4s cubic-bezier(.17,.67,.4,1.4);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* PULSE RING on active player */
+  @keyframes pulseRing {
+    0% { box-shadow: 0 0 0 0 rgba(247,201,72,0.6), 0 0 16px rgba(247,201,72,0.35); }
+    70% { box-shadow: 0 0 0 10px rgba(247,201,72,0), 0 0 16px rgba(247,201,72,0.35); }
+    100% { box-shadow: 0 0 0 0 rgba(247,201,72,0), 0 0 16px rgba(247,201,72,0.35); }
+  }
+  .player-card.active { animation: pulseRing 1.8s infinite; }
+
+  .stars { color: var(--gold); letter-spacing: -2px; }
+
+  /* PHASE indicator */
+  .phase-pill {
+    display: inline-block;
+    padding: 3px 14px;
+    border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+  .phase-roll { background: #3ddc84; color: #001a0a; }
+  .phase-challenge { background: #ff4f6d; color: #fff; }
+  .phase-vote { background: #ffab40; color: #1a0000; }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ═══ SETUP SCREEN ═══ -->
+<div id="setup-screen">
+  <header>
+    <div class="title-wrap">
+      <h1><span class="magnify">🔍</span> WHO DONE IT?</h1>
+      <div class="subtitle">🎲 Party Dice Mystery Game 🎲</div>
+    </div>
+  </header>
+
+  <div style="height:24px"></div>
+  <div class="setup-title">👥 Enter Players (2–6)</div>
+
+  <div id="player-inputs"></div>
+
+  <div class="center" style="margin-top: 24px;">
+    <button class="btn btn-gold" onclick="startGame()">🚀 Start the Mystery!</button>
+  </div>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div id="game-screen">
+  <header>
+    <div class="title-wrap">
+      <h1><span class="magnify">🔍</span> WHO DONE IT?</h1>
+      <div class="subtitle" id="round-label">Round 1 · Phase: <span id="phase-tag" class="phase-pill phase-roll">Roll</span></div>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <!-- Players -->
+      <div class="panel">
+        <div class="panel-title">🕵️ Detectives</div>
+        <div id="player-list"></div>
+      </div>
+
+      <!-- Suspect Tracker -->
+      <div class="panel">
+        <div class="panel-title">🎭 Suspect Tracker</div>
+        <div style="font-size:0.78rem;color:#9a78c8;margin-bottom:10px;font-weight:700;">Tap to mark suspects! ⭐ = suspect, ❌ = cleared</div>
+        <div class="suspect-grid" id="suspect-grid"></div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-area">
+      <!-- Turn Banner -->
+      <div class="turn-banner">
+        <div class="turn-ava" id="turn-ava">🕵️</div>
+        <div class="turn-info">
+          <div class="turn-label">Now Playing</div>
+          <div class="turn-name" id="turn-name">—</div>
+          <div class="turn-action" id="turn-action">Roll the dice to begin!</div>
+        </div>
+      </div>
+
+      <!-- Dice Section -->
+      <div class="dice-section">
+        <div class="panel-title" style="justify-content:center;margin-bottom:0;">🎲 Roll the Dice!</div>
+        <div class="dice-row">
+          <div>
+            <div class="die" id="die1">❓</div>
+            <span class="die-label">Challenge</span>
+          </div>
+          <div>
+            <div class="die" id="die2">❓</div>
+            <span class="die-label">Target</span>
+          </div>
+        </div>
+        <button class="btn btn-gold" id="roll-btn" onclick="rollDice()">🎲 Roll Dice!</button>
+      </div>
+
+      <!-- Challenge Card -->
+      <div class="challenge-card" id="challenge-card">
+        <div style="color:#7a5faa;font-family:'Fredoka One',cursive;font-size:1.1rem;">Waiting for the dice roll…</div>
+        <div style="font-size:2.5rem;">🎲</div>
+        <div style="color:#5a3a8a;font-size:0.9rem;font-weight:700;">Roll the dice above to get your challenge!</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-row" id="action-row"></div>
+
+      <!-- Log -->
+      <div class="panel">
+        <div class="panel-title">📜 Mystery Log</div>
+        <div class="log-panel" id="log-panel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WIN SCREEN ═══ -->
+<div id="win-screen">
+  <div class="win-box">
+    <span class="win-trophy">🏆</span>
+    <div class="win-title">CASE CLOSED!</div>
+    <div class="win-name" id="win-name">—</div>
+    <div class="win-sub" id="win-sub">Has solved the mystery and collected the most evidence!</div>
+    <div style="margin:16px 0;">
+      <span class="confetti" style="animation-delay:0s">🎉</span>
+      <span class="confetti" style="animation-delay:0.3s">🎊</span>
+      <span class="confetti" style="animation-delay:0.6s">🔍</span>
+      <span class="confetti" style="animation-delay:0.9s">🎉</span>
+      <span class="confetti" style="animation-delay:1.2s">🎊</span>
+    </div>
+    <button class="btn btn-gold" onclick="location.reload()">🔄 Play Again!</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+//  DATA
+// ═══════════════════════════════
+const AVATARS = ['🕵️','🧙‍♀️','🤠','🧛','🧜','🦸'];
+const COLORS  = ['#ff4f6d','#3ddc84','#4fc3f7','#ffab40','#b388ff','#f06292'];
+const NAMES   = ['Scarlet Sloane','Colonel Creep','Ms. Mustardville','Prof. Plumpton','Mrs. Pearcock','Rev. Greenback'];
+
+const SUSPECTS = [
+  {name:'Lord Dagger', emoji:'🗡️'},
+  {name:'Lady Venom',  emoji:'🐍'},
+  {name:'Dr. Bonez',   emoji:'💀'},
+  {name:'Chef Stabb',  emoji:'🔪'},
+  {name:'Countess Hex',emoji:'🧿'},
+  {name:'The Butler',  emoji:'🎩'},
+];
+
+const CHALLENGES = [
+  // type, icon, make(player, target)
+  {type:'Duel',    icon:'⚔️',  make:(p,t)=>`${p} challenges ${t} — first to name 5 colors wins! Loser loses 1 point.`},
+  {type:'Accuse',  icon:'👉',  make:(p,t)=>`${p} accuses ${t} of a crime! ${t} must defend in 10 seconds or lose 2 points.`},
+  {type:'Clue',    icon:'🔎',  make:(p,t)=>`${p} reveals a secret clue about ${t}. ${t} responds — crowd votes who gets 2 pts!`},
+  {type:'Alibi',   icon:'🗣️', make:(p,t)=>`${t} must give their best alibi. ${p} decides if it's believable — +2 pts to winner!`},
+  {type:'Bluff',   icon:'🃏',  make:(p,t)=>`${p} calls ${t}'s bluff! Both secretly choose Rock/Paper/Scissors. Winner takes 2 pts.`},
+  {type:'Witness', icon:'👁️', make:(p,t)=>`${p} spotted ${t} at the scene! ${p} gains 1 point automatically. ${t} must duck walk.`},
+  {type:'Inherit', icon:'💰',  make:(p,t)=>`${p} inherits 3 pts — but must give 1 to ${t} or lose 3 pts next turn!`},
+  {type:'Mystery', icon:'❓',  make:(p,t)=>`${p} draws from the mystery bag! Everyone writes a secret on paper — ${p} reads aloud.`},
+  {type:'Alibi',   icon:'🔏',  make:(p,t)=>`${t} must mime the murder weapon without speaking. ${p} guesses — +2 pts if correct!`},
+  {type:'Gossip',  icon:'📢',  make:(p,t)=>`${p} starts a rumour about ${t}. Everyone adds 1 sentence. Best story wins 2 pts!`},
+  {type:'Swap',    icon:'🔄',  make:(p,t)=>`${p} and ${t} SWAP scores! But only if the crowd approves with a thumbs down. 👎`},
+  {type:'Trial',   icon:'⚖️',  make:(p,t)=>`${t} is on trial! ${p} is the judge. Other players vote guilty or not. Majority wins 2 pts.`},
+];
+
+const CHALLENGE_DIE = ['🔎','⚔️','🎭','🔏','💀','🃏'];
+const TARGET_DIE    = ['⬆️','⬇️','👈','👉','🎲','🎯'];
+// target meanings: next, prev, left, right, random, self-pick
+
+// ═══════════════════════════════
+//  STATE
+// ═══════════════════════════════
+let players = [];
+let currentIdx = 0;
+let round = 1;
+let phase = 'roll'; // roll | challenge | next
+let lastChallenge = null;
+let suspectStates = {}; // 'none','starred','cleared'
+
+// ═══════════════════════════════
+//  SETUP
+// ═══════════════════════════════
+function buildSetup() {
+  const container = document.getElementById('player-inputs');
+  container.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <div class="player-avatar">${AVATARS[i]}</div>
+      <input class="player-name-input" id="pname${i}" placeholder="${i < 2 ? NAMES[i] : '(optional) '+NAMES[i]}" maxlength="20">
+      <div class="color-dot" style="background:${COLORS[i]}"></div>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function startGame() {
+  players = [];
+  for (let i = 0; i < 6; i++) {
+    const val = document.getElementById(`pname${i}`).value.trim();
+    if (val || i < 2) {
+      players.push({
+        name: val || NAMES[i],
+        avatar: AVATARS[i],
+        color: COLORS[i],
+        score: 0,
+        active: true,
+      });
+    }
+  }
+  if (players.length < 2) { showToast('Need at least 2 players! 🎲'); return; }
+
+  // init suspects
+  SUSPECTS.forEach(s => suspectStates[s.name] = 'none');
+  currentIdx = 0;
+  round = 1;
+  phase = 'roll';
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+
+  buildPlayerList();
+  buildSuspectGrid();
+  updateTurnBanner();
+  updatePhase();
+  addLog('🎲 The mystery begins! Good luck, detectives!');
+}
+
+// ═══════════════════════════════
+//  UI BUILDERS
+// ═══════════════════════════════
+function buildPlayerList() {
+  const el = document.getElementById('player-list');
+  el.innerHTML = '';
+  players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = `player-card${i === currentIdx ? ' active' : ''}${!p.active ? ' eliminated' : ''}`;
+    div.id = `pcard-${i}`;
+    div.style.color = p.color;
+    div.innerHTML = `
+      <div class="pcard-avatar">${p.avatar}</div>
+      <div class="pcard-name" style="color:#fff">${p.name}</div>
+      <div class="pcard-score">${p.score}<span style="font-size:0.7rem;color:#9a78c8"> pts</span></div>
+      ${i === currentIdx ? '<span class="turn-arrow">👈</span>' : ''}
+    `;
+    el.appendChild(div);
+  });
+}
+
+function buildSuspectGrid() {
+  const el = document.getElementById('suspect-grid');
+  el.innerHTML = '';
+  SUSPECTS.forEach(s => {
+    const state = suspectStates[s.name];
+    const chip = document.createElement('div');
+    chip.className = `suspect-chip${state==='cleared'?' cleared':''}${state==='starred'?' starred':''}`;
+    chip.onclick = () => cycleSuspect(s.name);
+    chip.innerHTML = `
+      ${state==='cleared' ? '<span class="cleared-x">✗</span>' : ''}
+      <span>${s.emoji}</span>
+      <span class="suspect-name">${s.name}</span>
+      ${state==='starred' ? '<span style="font-size:0.7rem;color:var(--gold)">★ SUSPECT</span>' : ''}
+    `;
+    el.appendChild(chip);
+  });
+}
+
+function cycleSuspect(name) {
+  const states = ['none','starred','cleared'];
+  const cur = states.indexOf(suspectStates[name]);
+  suspectStates[name] = states[(cur+1) % 3];
+  buildSuspectGrid();
+}
+
+function updateTurnBanner() {
+  const p = players[currentIdx];
+  document.getElementById('turn-ava').textContent = p.avatar;
+  document.getElementById('turn-name').textContent = p.name;
+  document.getElementById('turn-action').textContent = phase === 'roll' ? 'Roll the dice to get your challenge!' : 'Complete your challenge!';
+  document.getElementById('round-label').innerHTML = `Round ${round} · Phase: <span id="phase-tag" class="phase-pill phase-${phase === 'roll' ? 'roll' : 'challenge'}">${phase === 'roll' ? 'Roll' : 'Challenge'}</span>`;
+}
+
+function updatePhase() {
+  const rollBtn = document.getElementById('roll-btn');
+  const actionRow = document.getElementById('action-row');
+
+  if (phase === 'roll') {
+    rollBtn.style.display = 'inline-block';
+    rollBtn.disabled = false;
+    actionRow.innerHTML = '';
+  } else if (phase === 'challenge') {
+    rollBtn.style.display = 'none';
+    actionRow.innerHTML = `
+      <button class="btn btn-green btn-sm" onclick="resolveChallenge(true)">✅ Challenge Done! (+2 pts)</button>
+      <button class="btn btn-red btn-sm" onclick="resolveChallenge(false)">❌ Failed... (-1 pt)</button>
+      <button class="btn btn-sm" style="background:var(--purple);color:#fff;box-shadow:0 4px 0 #4a0080;" onclick="nextTurn()">⏭️ Skip & Next</button>
+    `;
+  }
+  buildPlayerList();
+  updateTurnBanner();
+}
+
+// ═══════════════════════════════
+//  DICE & CHALLENGES
+// ═══════════════════════════════
+function rollDice() {
+  const btn = document.getElementById('roll-btn');
+  btn.disabled = true;
+
+  const die1el = document.getElementById('die1');
+  const die2el = document.getElementById('die2');
+
+  die1el.classList.add('rolling');
+  die2el.classList.add('rolling');
+
+  let ticks = 0;
+  const interval = setInterval(() => {
+    die1el.textContent = CHALLENGE_DIE[Math.floor(Math.random()*CHALLENGE_DIE.length)];
+    die2el.textContent = TARGET_DIE[Math.floor(Math.random()*TARGET_DIE.length)];
+    ticks++;
+    if (ticks > 12) {
+      clearInterval(interval);
+      die1el.classList.remove('rolling');
+      die2el.classList.remove('rolling');
+      finalizeRoll();
+    }
+  }, 80);
+}
+
+function finalizeRoll() {
+  const die1el = document.getElementById('die1');
+  const die2el = document.getElementById('die2');
+
+  const cIdx = Math.floor(Math.random() * CHALLENGE_DIE.length);
+  const tIdx = Math.floor(Math.random() * TARGET_DIE.length);
+
+  die1el.textContent = CHALLENGE_DIE[cIdx];
+  die2el.textContent = TARGET_DIE[tIdx];
+
+  // Pick challenge
+  const ch = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+
+  // Determine target
+  const activePlayers = players.filter((p,i) => p.active && i !== currentIdx);
+  let targetPlayer;
+  if (activePlayers.length === 0) { targetPlayer = players[currentIdx]; }
+  else {
+    const targetIdxMap = [
+      (currentIdx + 1) % players.length,
+      (currentIdx - 1 + players.length) % players.length,
+      (currentIdx + 2) % players.length,
+      (currentIdx - 2 + players.length) % players.length,
+    ];
+    // just pick a valid active one
+    let ti = targetIdxMap[tIdx % targetIdxMap.length];
+    if (!players[ti] || !players[ti].active) {
+      ti = activePlayers[Math.floor(Math.random()*activePlayers.length)];
+      ti = players.indexOf(ti);
+    }
+    targetPlayer = players[ti];
+  }
+
+  const challengeText = ch.make(players[currentIdx].name, targetPlayer.name);
+
+  // Show challenge card
+  const card = document.getElementById('challenge-card');
+  card.innerHTML = `
+    <div class="challenge-type">${ch.type}</div>
+    <div class="challenge-icon">${ch.icon}</div>
+    <div class="challenge-text">${challengeText.replace(players[currentIdx].name, `<span class="challenge-target">${players[currentIdx].name}</span>`).replace(targetPlayer.name, `<span class="challenge-target">${targetPlayer.name}</span>`)}</div>
+  `;
+
+  lastChallenge = { ch, targetPlayer, challengeText };
+  addLog(`${players[currentIdx].avatar} ${players[currentIdx].name} rolled ${CHALLENGE_DIE[cIdx]}${TARGET_DIE[tIdx]} — ${ch.type} challenge vs ${targetPlayer.name}!`);
+
+  phase = 'challenge';
+  updatePhase();
+  showToast(`${ch.icon} ${ch.type} Challenge!`);
+}
+
+function resolveChallenge(success) {
+  const cur = players[currentIdx];
+  if (success) {
+    cur.score += 2;
+    addLog(`✅ ${cur.avatar} ${cur.name} completed the challenge! +2 pts → ${cur.score} pts`);
+    showToast('🎉 +2 Points!');
+  } else {
+    cur.score = Math.max(0, cur.score - 1);
+    addLog(`❌ ${cur.avatar} ${cur.name} failed… -1 pt → ${cur.score} pts`);
+    showToast('💀 -1 Point!');
+  }
+  nextTurn();
+}
+
+function nextTurn() {
+  // find next active player
+  let tries = 0;
+  do {
+    currentIdx = (currentIdx + 1) % players.length;
+    tries++;
+    if (currentIdx === 0) round++;
+  } while (!players[currentIdx].active && tries < players.length);
+
+  // Check win: 10 rounds or someone at 15 pts
+  const maxPts = Math.max(...players.map(p=>p.score));
+  if (round > 10 || maxPts >= 15) {
+    endGame();
+    return;
+  }
+
+  // Reset for next turn
+  phase = 'roll';
+  document.getElementById('die1').textContent = '❓';
+  document.getElementById('die2').textContent = '❓';
+  document.getElementById('challenge-card').innerHTML = `
+    <div style="color:#7a5faa;font-family:'Fredoka One',cursive;font-size:1.1rem;">Waiting for the dice roll…</div>
+    <div style="font-size:2.5rem;">🎲</div>
+    <div style="color:#5a3a8a;font-size:0.9rem;font-weight:700;">${players[currentIdx].name}'s turn — roll the dice!</div>
+  `;
+  addLog(`─── ${players[currentIdx].avatar} ${players[currentIdx].name}'s turn! ───`);
+  updatePhase();
+  showToast(`${players[currentIdx].avatar} ${players[currentIdx].name}'s turn!`);
+
+  // Scroll player into view
+  const pcard = document.getElementById(`pcard-${currentIdx}`);
+  if (pcard) pcard.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ═══════════════════════════════
+//  END GAME
+// ═══════════════════════════════
+function endGame() {
+  const winner = players.reduce((a,b) => a.score >= b.score ? a : b);
+  document.getElementById('win-name').textContent = `${winner.avatar} ${winner.name}`;
+  document.getElementById('win-sub').textContent = `Solved the case with ${winner.score} Evidence Points! 🔍`;
+  const ws = document.getElementById('win-screen');
+  ws.style.display = 'flex';
+  addLog(`🏆 ${winner.name} wins with ${winner.score} points!`);
+}
+
+// ═══════════════════════════════
+//  HELPERS
+// ═══════════════════════════════
+let logLines = [];
+function addLog(msg) {
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  logLines.unshift({ time, msg });
+  if (logLines.length > 40) logLines.pop();
+  const panel = document.getElementById('log-panel');
+  panel.innerHTML = logLines.map(l=>`
+    <div class="log-entry">
+      <span class="log-time">${l.time}</span>
+      <span class="log-msg">${l.msg}</span>
+    </div>
+  `).join('');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ─── INIT ───
+buildSetup();
+</script>
+</body>
+</html>
