@@ -2,100 +2,649 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini BI Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced BI Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
   <style>
-    body { font-family: Arial; margin: 0; display: flex; height: 100vh; }
-    #sidebar { width: 250px; background: #f4f4f4; padding: 10px; overflow-y: auto; }
-    #main { flex: 1; padding: 20px; }
-    canvas { max-width: 100%; }
-    select, button { width: 100%; margin-bottom: 10px; padding: 5px; }
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    .dashboard { 
+      display: grid; 
+      grid-template-columns: 280px 1fr; 
+      gap: 16px; 
+      padding: 16px; 
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+    
+    .sidebar { 
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 16px;
+      height: fit-content;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .main { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 16px;
+    }
+    
+    .section-title { 
+      font-size: 12px; 
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 8px;
+      margin-top: 8px;
+    }
+    
+    .section-title:first-child {
+      margin-top: 0;
+    }
+    
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 16px;
+    }
+    
+    input[type="file"], 
+    select, 
+    input[type="text"] { 
+      width: 100%; 
+      padding: 10px; 
+      border: 1px solid #ddd;
+      border-radius: 6px; 
+      background: white;
+      color: #333;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="file"]:hover, 
+    select:hover,
+    input[type="text"]:hover { 
+      border-color: #999;
+    }
+    
+    input[type="file"]:focus, 
+    select:focus,
+    input[type="text"]:focus { 
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+    
+    .filter-group { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .filter-group label { 
+      font-size: 12px; 
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .button-group { 
+      display: flex; 
+      gap: 8px;
+    }
+    
+    button { 
+      flex: 1;
+      padding: 10px 12px; 
+      background: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    button:hover { 
+      background: #0052a3;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .metrics { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 12px;
+    }
+    
+    .metric-card { 
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .metric-label { 
+      font-size: 11px; 
+      color: #999;
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .metric-value { 
+      font-size: 28px; 
+      font-weight: 700;
+      color: #0066cc;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    
+    .metric-stat {
+      font-size: 12px; 
+      color: #999;
+      margin-top: 4px;
+    }
+    
+    .charts-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+      gap: 16px;
+    }
+    
+    .chart-container { 
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .chart-title { 
+      font-size: 14px; 
+      font-weight: 600;
+      margin-bottom: 12px; 
+      color: #222;
+    }
+    
+    .chart-wrapper {
+      flex: 1;
+      position: relative;
+      min-height: 250px;
+    }
+    
+    canvas { 
+      max-height: 250px;
+    }
+    
+    .pivot-section { 
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+    
+    .pivot-table { 
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .pivot-table th { 
+      background: #f8f8f8;
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e0e0e0;
+      color: #333;
+    }
+    
+    .pivot-table td { 
+      padding: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .pivot-table tbody tr:hover { 
+      background: #f8f8f8;
+    }
+    
+    .controls { 
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      background: white;
+      padding: 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .control { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px;
+    }
+    
+    .control label { 
+      font-size: 12px; 
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .filter-action {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      grid-column: 1 / -1;
+    }
+    
+    .filter-action button {
+      flex: 1;
+    }
+    
+    button.secondary {
+      background: white;
+      color: #0066cc;
+      border: 1px solid #0066cc;
+    }
+    
+    button.secondary:hover {
+      background: #f0f5ff;
+    }
+    
+    @media (max-width: 1200px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        height: auto;
+      }
+      
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
   </style>
 </head>
 <body>
 
-<div id="sidebar">
-  <h3>Upload CSV</h3>
-  <input type="file" id="fileInput" accept=".csv">
+<div class="dashboard">
+  <div class="sidebar">
+    <div>
+      <h3>📊 BI Dashboard</h3>
+      <div class="section-title">Data Import</div>
+      <input type="file" id="fileInput" accept=".csv" placeholder="Upload CSV file">
+      <p style="font-size: 11px; color: #999; margin-top: 6px;">Upload a CSV file to begin</p>
+    </div>
 
-  <h3>Fields</h3>
-  <label>X Axis</label>
-  <select id="xSelect"></select>
+    <div>
+      <div class="section-title">Visualization</div>
+      <div class="filter-group">
+        <label>Chart Type</label>
+        <select id="chartType">
+          <option value="bar">Bar Chart</option>
+          <option value="line">Line Chart</option>
+          <option value="doughnut">Doughnut Chart</option>
+          <option value="scatter">Scatter Plot</option>
+          <option value="area">Area Chart</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>X Axis (Category)</label>
+        <select id="xSelect"></select>
+      </div>
+      <div class="filter-group">
+        <label>Y Axis (Value)</label>
+        <select id="ySelect"></select>
+      </div>
+    </div>
 
-  <label>Y Axis</label>
-  <select id="ySelect"></select>
+    <div>
+      <div class="section-title">Aggregation</div>
+      <div class="filter-group">
+        <label>Function</label>
+        <select id="aggregateFunc">
+          <option value="sum">Sum</option>
+          <option value="avg">Average</option>
+          <option value="count">Count</option>
+          <option value="min">Minimum</option>
+          <option value="max">Maximum</option>
+        </select>
+      </div>
+    </div>
 
-  <label>Chart Type</label>
-  <select id="chartType">
-    <option value="bar">Bar</option>
-    <option value="line">Line</option>
-    <option value="pie">Pie</option>
-  </select>
+    <div>
+      <div class="section-title">Actions</div>
+      <div class="button-group">
+        <button onclick="renderChart()">Update Chart</button>
+        <button class="secondary" onclick="exportData()">Export</button>
+      </div>
+    </div>
+  </div>
 
-  <button onclick="renderChart()">Render Chart</button>
-</div>
+  <div class="main">
+    <div id="metricsContainer" class="metrics"></div>
 
-<div id="main">
-  <h2>Dashboard</h2>
-  <canvas id="chart"></canvas>
+    <div class="controls">
+      <div class="control">
+        <label>Filter Field</label>
+        <select id="filterField"></select>
+      </div>
+      <div class="control">
+        <label>Filter Value</label>
+        <input type="text" id="filterValue" placeholder="e.g., Sales, Region A">
+      </div>
+      <div class="filter-action">
+        <button onclick="applyFilter()">Apply Filter</button>
+        <button class="secondary" onclick="clearFilter()">Clear Filter</button>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-container">
+        <div class="chart-title">Primary Visualization</div>
+        <div class="chart-wrapper">
+          <canvas id="primaryChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Trend Analysis</div>
+        <div class="chart-wrapper">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="pivot-section">
+      <div class="chart-title">Data Summary</div>
+      <table class="pivot-table" id="pivotTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script>
-let data = [];
+let rawData = [];
 let headers = [];
-let chart;
+let filteredData = [];
+let primaryChart, trendChart;
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
   const file = e.target.files[0];
+  if (!file) return;
   const reader = new FileReader();
-
   reader.onload = function(event) {
     const text = event.target.result;
     parseCSV(text);
   };
-
   reader.readAsText(file);
 });
 
 function parseCSV(text) {
-  const rows = text.split('\n').map(r => r.split(','));
+  const rows = text.split('\n').filter(r => r.trim()).map(r => r.split(',').map(v => v.trim()));
   headers = rows[0];
-  data = rows.slice(1);
-
-  const xSelect = document.getElementById('xSelect');
-  const ySelect = document.getElementById('ySelect');
-
-  xSelect.innerHTML = '';
-  ySelect.innerHTML = '';
-
-  headers.forEach((h, i) => {
-    xSelect.innerHTML += `<option value="${i}">${h}</option>`;
-    ySelect.innerHTML += `<option value="${i}">${h}</option>`;
+  rawData = rows.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = isNaN(row[i]) ? row[i] : parseFloat(row[i]);
+    });
+    return obj;
   });
+  filteredData = JSON.parse(JSON.stringify(rawData));
+
+  populateSelects();
+  updateMetrics();
+  updatePivotTable();
+  renderChart();
+  renderTrendChart();
+}
+
+function populateSelects() {
+  const numericFields = headers.filter(h => {
+    return rawData.some(row => !isNaN(row[h]) && row[h] !== '');
+  });
+  const allFields = headers;
+
+  ['xSelect', 'filterField'].forEach(id => {
+    const select = document.getElementById(id);
+    select.innerHTML = allFields.map(h => `<option value="${h}">${h}</option>`).join('');
+  });
+
+  document.getElementById('ySelect').innerHTML = numericFields.map(h => `<option value="${h}">${h}</option>`).join('');
+}
+
+function updateMetrics() {
+  const numericFields = headers.filter(h => {
+    return rawData.some(row => !isNaN(row[h]) && row[h] !== '');
+  });
+
+  let html = '';
+  numericFields.slice(0, 4).forEach(field => {
+    const values = filteredData.map(row => parseFloat(row[field]) || 0).filter(v => !isNaN(v));
+    if (values.length === 0) return;
+    
+    const sum = values.reduce((a, b) => a + b, 0);
+    const avg = (sum / values.length);
+    
+    html += `
+      <div class="metric-card">
+        <div class="metric-label">${field}</div>
+        <div class="metric-value">${Math.round(sum).toLocaleString()}</div>
+        <div class="metric-stat">Avg: ${Math.round(avg).toLocaleString()}</div>
+        <div class="metric-stat">Count: ${values.length}</div>
+      </div>
+    `;
+  });
+
+  document.getElementById('metricsContainer').innerHTML = html || '<div class="empty-state">Upload CSV to see metrics</div>';
 }
 
 function renderChart() {
-  const xIndex = document.getElementById('xSelect').value;
-  const yIndex = document.getElementById('ySelect').value;
-  const type = document.getElementById('chartType').value;
+  const xField = document.getElementById('xSelect').value;
+  const yField = document.getElementById('ySelect').value;
+  const chartType = document.getElementById('chartType').value;
+  const aggregateFunc = document.getElementById('aggregateFunc').value;
 
-  const labels = data.map(row => row[xIndex]);
-  const values = data.map(row => parseFloat(row[yIndex]) || 0);
+  if (!xField || !yField || filteredData.length === 0) return;
 
-  const ctx = document.getElementById('chart').getContext('2d');
+  const grouped = {};
+  filteredData.forEach(row => {
+    const key = String(row[xField]);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(parseFloat(row[yField]) || 0);
+  });
 
-  if (chart) chart.destroy();
+  const labels = Object.keys(grouped);
+  let values = labels.map(key => {
+    const nums = grouped[key];
+    switch(aggregateFunc) {
+      case 'sum': return nums.reduce((a, b) => a + b, 0);
+      case 'avg': return nums.reduce((a, b) => a + b, 0) / nums.length;
+      case 'count': return nums.length;
+      case 'min': return Math.min(...nums);
+      case 'max': return Math.max(...nums);
+      default: return nums[0];
+    }
+  });
 
-  chart = new Chart(ctx, {
-    type: type,
+  values = values.map(v => Math.round(v * 100) / 100);
+
+  const ctx = document.getElementById('primaryChart').getContext('2d');
+  if (primaryChart) primaryChart.destroy();
+  
+  const chartConfig = {
+    type: chartType === 'area' ? 'line' : chartType,
     data: {
       labels: labels,
       datasets: [{
-        label: headers[yIndex],
-        data: values
+        label: yField,
+        data: values,
+        backgroundColor: chartType === 'doughnut' ? ['#0066cc', '#00a8e8', '#00d4ff', '#ffd60a', '#ffc300'] : '#0066cc',
+        borderColor: chartType === 'area' ? '#0066cc' : '#0066cc',
+        fill: chartType === 'area',
+        tension: chartType === 'area' ? 0.4 : 0
       }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: chartType === 'doughnut' } },
+      scales: chartType !== 'doughnut' ? { y: { beginAtZero: true } } : {}
+    }
+  };
+
+  primaryChart = new Chart(ctx, chartConfig);
+}
+
+function renderTrendChart() {
+  if (filteredData.length === 0) return;
+  
+  const yField = document.getElementById('ySelect').value;
+  if (!yField) return;
+  
+  const labels = filteredData.map((_, i) => `#${i + 1}`).slice(0, 30);
+  const values = filteredData.slice(0, 30).map(row => parseFloat(row[yField]) || 0);
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Trend',
+        data: values,
+        borderColor: '#00a652',
+        backgroundColor: 'rgba(0, 166, 82, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } }
     }
   });
+}
+
+function updatePivotTable() {
+  if (filteredData.length === 0) {
+    document.getElementById('pivotTable').innerHTML = '<thead></thead><tbody><tr><td class="empty-state">No data</td></tr></tbody>';
+    return;
+  }
+
+  const xField = document.getElementById('xSelect').value;
+  const yField = document.getElementById('ySelect').value;
+
+  if (!xField || !yField) return;
+
+  const grouped = {};
+  filteredData.forEach(row => {
+    const key = String(row[xField]);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(parseFloat(row[yField]) || 0);
+  });
+
+  let html = `<thead><tr><th>${xField}</th><th>Sum</th><th>Avg</th><th>Count</th><th>Min</th><th>Max</th></tr></thead><tbody>`;
+  Object.entries(grouped).sort((a, b) => {
+    const sumA = a[1].reduce((x, y) => x + y, 0);
+    const sumB = b[1].reduce((x, y) => x + y, 0);
+    return sumB - sumA;
+  }).forEach(([key, values]) => {
+    const sum = Math.round(values.reduce((a, b) => a + b, 0) * 100) / 100;
+    const avg = Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) / 100;
+    const min = Math.round(Math.min(...values) * 100) / 100;
+    const max = Math.round(Math.max(...values) * 100) / 100;
+    html += `<tr><td><strong>${key}</strong></td><td>${sum.toLocaleString()}</td><td>${avg.toLocaleString()}</td><td>${values.length}</td><td>${min.toLocaleString()}</td><td>${max.toLocaleString()}</td></tr>`;
+  });
+  html += '</tbody>';
+
+  document.getElementById('pivotTable').innerHTML = html;
+}
+
+function applyFilter() {
+  const field = document.getElementById('filterField').value;
+  const value = document.getElementById('filterValue').value.toLowerCase();
+  if (!value.trim()) {
+    alert('Please enter a filter value');
+    return;
+  }
+  filteredData = rawData.filter(row => String(row[field]).toLowerCase().includes(value));
+  updateMetrics();
+  updatePivotTable();
+  renderChart();
+  renderTrendChart();
+}
+
+function clearFilter() {
+  filteredData = JSON.parse(JSON.stringify(rawData));
+  document.getElementById('filterValue').value = '';
+  updateMetrics();
+  updatePivotTable();
+  renderChart();
+  renderTrendChart();
+}
+
+function exportData() {
+  let csv = headers.join(',') + '\n';
+  filteredData.forEach(row => {
+    csv += headers.map(h => {
+      const val = row[h];
+      return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+    }).join(',') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'dashboard_export.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 </script>
 
