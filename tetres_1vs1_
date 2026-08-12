@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tetris VS — 1v1</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(#0d0221, #1a0033);
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+  }
+  h1 {
+    letter-spacing: 4px;
+    color: #ff2ea6;
+    text-shadow: 0 0 6px #ff2ea6, 0 0 14px #7f00ff;
+    margin: 8px 0 4px;
+  }
+  .sub { color: #9be9ff; font-size: 12px; margin-bottom: 12px; }
+
+  /* Join screen */
+  #joinScreen {
+    background: #150029;
+    border: 2px solid #ff2ea6;
+    border-radius: 10px;
+    padding: 20px 30px;
+    text-align: center;
+    box-shadow: 0 0 20px #ff2ea680;
+  }
+  #joinScreen input {
+    background: #22003f;
+    border: 1px solid #9be9ff;
+    color: #fff;
+    padding: 6px 10px;
+    margin: 6px;
+    font-family: inherit;
+    border-radius: 4px;
+  }
+  #joinScreen label { display: block; margin-top: 10px; font-size: 12px; color: #9be9ff;}
+  #joinBtn {
+    margin-top: 16px;
+    background: #ff2ea6;
+    border: none;
+    color: #fff;
+    padding: 10px 24px;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 2px;
+  }
+  #joinBtn:hover { background: #ff5cc0; }
+  #roomLine { font-size: 11px; color: #7fffb0; margin-top: 10px; }
+
+  /* Game area */
+  #gameArea { display: none; gap: 24px; align-items: flex-start; }
+  .board-wrap { text-align: center; }
+  .board-wrap h2 { margin: 0 0 6px; font-size: 15px; }
+  .p1h { color: #7fffb0; }
+  .p2h { color: #9be9ff; }
+  canvas {
+    background: #0a0016;
+    border: 3px solid #444;
+    image-rendering: pixelated;
+    display: block;
+  }
+  .hud { display: flex; justify-content: space-between; font-size: 12px; margin-top: 6px; width: 200px; margin-left:auto; margin-right:auto;}
+  .warn { color: #ff2ea6; font-weight: bold; animation: pulse 0.6s infinite alternate; }
+  @keyframes pulse { from{opacity:1;} to{opacity:0.4;} }
+  .controlsHint { font-size: 10px; color: #888; margin-top: 8px; max-width: 220px; }
+  #status {
+    margin-top: 16px;
+    font-size: 20px;
+    color: #ffd166;
+    text-shadow: 0 0 8px #ffd166;
+    display: none;
+  }
+  #restartBtn {
+    display: none;
+    margin-top: 10px;
+    background: #7fffb0;
+    border: none;
+    padding: 8px 20px;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>TETRIS // VS</h1>
+<div class="sub">local 1v1 — anime-chiptune obstacle mode</div>
+
+<div id="joinScreen">
+  <div>Enter a room code to start the match</div>
+  <input id="roomCode" placeholder="ROOM CODE" value="DOJO-01">
+  <label>Player 1 name</label>
+  <input id="p1name" placeholder="Player 1" value="Player 1">
+  <label>Player 2 name</label>
+  <input id="p2name" placeholder="Player 2" value="Player 2">
+  <br>
+  <button id="joinBtn">JOIN ROOM ▶</button>
+  <div id="roomLine">both players share this screen &amp; keyboard</div>
+</div>
+
+<div id="gameArea">
+  <div class="board-wrap">
+    <h2 class="p1h" id="p1title">PLAYER 1</h2>
+    <canvas id="board1" width="200" height="400"></canvas>
+    <div class="hud"><span>Score: <b id="score1">0</b></span><span>Lines: <b id="lines1">0</b></span></div>
+    <div id="warn1" class="warn" style="visibility:hidden; font-size:11px; margin-top:4px;">⚠ FALLING BEHIND</div>
+    <div class="controlsHint">A/D move · W rotate · S soft drop · SPACE hard drop</div>
+  </div>
+  <div class="board-wrap">
+    <h2 class="p2h" id="p2title">PLAYER 2</h2>
+    <canvas id="board2" width="200" height="400"></canvas>
+    <div class="hud"><span>Score: <b id="score2">0</b></span><span>Lines: <b id="lines2">0</b></span></div>
+    <div id="warn2" class="warn" style="visibility:hidden; font-size:11px; margin-top:4px;">⚠ FALLING BEHIND</div>
+    <div class="controlsHint">←/→ move · ↑ rotate · ↓ soft drop · ENTER hard drop</div>
+  </div>
+</div>
+
+<div id="status"></div>
+<button id="restartBtn">REMATCH ▶</button>
+
+<script>
+/* ================== AUDIO (procedural 8-bit) ================== */
+let actx = null;
+function ensureAudio(){ if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); }
+function beep(freq, dur, type='square', vol=0.08, delay=0){
+  if(!actx) return;
+  const t0 = actx.currentTime + delay;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(vol, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain); gain.connect(actx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  move:()=>beep(220,0.05,'square',0.05),
+  rotate:()=>beep(440,0.06,'square',0.06),
+  drop:()=>beep(110,0.08,'square',0.09),
+  lock:()=>beep(150,0.05,'triangle',0.06),
+  clear:(n)=>{ const notes=[523,659,784,1047]; for(let i=0;i<Math.min(n,4);i++) beep(notes[i],0.12,'square',0.09,i*0.06); },
+  garbage:()=>{ beep(80,0.15,'sawtooth',0.08); beep(60,0.2,'sawtooth',0.07,0.05); },
+  gameover:()=>{ [392,349,294,196].forEach((f,i)=>beep(f,0.25,'triangle',0.1,i*0.22)); },
+  bgTick:(i)=>{ const scale=[523,587,659,523,659,784,659,587]; beep(scale[i%scale.length],0.1,'square',0.03); }
+};
+let bgIndex = 0, bgTimer = null;
+function startBgLoop(){
+  if(bgTimer) return;
+  bgTimer = setInterval(()=>{ sfx.bgTick(bgIndex++); }, 260);
+}
+function stopBgLoop(){ clearInterval(bgTimer); bgTimer=null; }
+
+/* ================== TETROMINOES ================== */
+const SHAPES = {
+  I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  O: [[1,1],[1,1]],
+  T: [[0,1,0],[1,1,1],[0,0,0]],
+  S: [[0,1,1],[1,1,0],[0,0,0]],
+  Z: [[1,1,0],[0,1,1],[0,0,0]],
+  J: [[1,0,0],[1,1,1],[0,0,0]],
+  L: [[0,0,1],[1,1,1],[0,0,0]]
+};
+const COLORS = {
+  I:'#5cf1ff', O:'#ffe45c', T:'#c65cff', S:'#5cff8f', Z:'#ff5c5c', J:'#5c7bff', L:'#ff9d5c', G:'#5a5a5a'
+};
+function rotateCW(m){
+  const n = m.length;
+  const res = Array.from({length:n},()=>Array(n).fill(0));
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) res[c][n-1-r] = m[r][c];
+  return res;
+}
+function randPiece(){
+  const keys = Object.keys(SHAPES);
+  const k = keys[Math.floor(Math.random()*keys.length)];
+  return { key:k, m: SHAPES[k].map(r=>r.slice()), color: COLORS[k] };
+}
+
+/* ================== BOARD / PLAYER ================== */
+const COLS = 10, ROWS = 20, CELL = 20;
+const GARBAGE_THRESHOLD = 300; // score gap that triggers obstacle rows
+
+function newGrid(){ return Array.from({length:ROWS},()=>Array(COLS).fill(0)); }
+
+class Player {
+  constructor(canvasId, name, keys, scoreEl, linesEl, warnEl, titleEl){
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.name = name;
+    this.keys = keys;
+    this.scoreEl = scoreEl; this.linesEl = linesEl; this.warnEl = warnEl;
+    titleEl.textContent = name.toUpperCase();
+    this.grid = newGrid();
+    this.score = 0; this.lines = 0;
+    this.piece = randPiece();
+    this.px = 3; this.py = -1;
+    this.next = randPiece();
+    this.dropInterval = 800;
+    this.dropTimer = 0;
+    this.alive = true;
+    this.lastGarbageLevel = 0; // how many garbage rows already applied for current gap tier
+  }
+  collide(m, px, py){
+    for(let r=0;r<m.length;r++){
+      for(let c=0;c<m[r].length;c++){
+        if(!m[r][c]) continue;
+        const x = px+c, y = py+r;
+        if(x<0||x>=COLS||y>=ROWS) return true;
+        if(y>=0 && this.grid[y][x]) return true;
+      }
+    }
+    return false;
+  }
+  spawn(){
+    this.piece = this.next;
+    this.next = randPiece();
+    this.px = Math.floor((COLS - this.piece.m[0].length)/2);
+    this.py = -1;
+    if(this.collide(this.piece.m, this.px, this.py)){
+      this.alive = false;
+    }
+  }
+  move(dx){
+    if(!this.alive) return;
+    if(!this.collide(this.piece.m, this.px+dx, this.py)){ this.px += dx; sfx.move(); }
+  }
+  rotate(){
+    if(!this.alive) return;
+    const rm = rotateCW(this.piece.m);
+    if(!this.collide(rm, this.px, this.py)){ this.piece.m = rm; sfx.rotate(); }
+    else if(!this.collide(rm, this.px-1, this.py)){ this.piece.m = rm; this.px -=1; sfx.rotate(); }
+    else if(!this.collide(rm, this.px+1, this.py)){ this.piece.m = rm; this.px +=1; sfx.rotate(); }
+  }
+  softDrop(){
+    if(!this.alive) return;
+    if(!this.collide(this.piece.m, this.px, this.py+1)){ this.py++; this.score += 1; }
+    else { this.lock(); }
+  }
+  hardDrop(){
+    if(!this.alive) return;
+    let d=0;
+    while(!this.collide(this.piece.m, this.px, this.py+1)){ this.py++; d++; }
+    this.score += d*2;
+    sfx.drop();
+    this.lock();
+  }
+  lock(){
+    const m = this.piece.m;
+    for(let r=0;r<m.length;r++){
+      for(let c=0;c<m[r].length;c++){
+        if(m[r][c]){
+          const y = this.py+r, x = this.px+c;
+          if(y<0){ this.alive=false; return; }
+          this.grid[y][x] = this.piece.color;
+        }
+      }
+    }
+    sfx.lock();
+    this.clearLines();
+    this.spawn();
+  }
+  clearLines(){
+    let cleared = 0;
+    for(let r=ROWS-1;r>=0;r--){
+      if(this.grid[r].every(cell=>cell)){
+        this.grid.splice(r,1);
+        this.grid.unshift(Array(COLS).fill(0));
+        cleared++; r++;
+      }
+    }
+    if(cleared>0){
+      const points = [0,100,300,500,800][cleared] || 1000;
+      this.score += points;
+      this.lines += cleared;
+      sfx.clear(cleared);
+    }
+  }
+  addGarbage(n){
+    for(let i=0;i<n;i++){
+      const gapCol = Math.floor(Math.random()*COLS);
+      const row = Array(COLS).fill(COLORS.G);
+      row[gapCol] = 0;
+      this.grid.shift();
+      this.grid.push(row);
+    }
+    // if piece area got compressed into stack, check top-out
+    if(this.collide(this.piece.m, this.px, this.py)) this.alive = false;
+    sfx.garbage();
+  }
+  draw(){
+    const ctx = this.ctx;
+    ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    // locked grid
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(this.grid[r][c]) this.drawCell(c,r,this.grid[r][c]);
+      }
+    }
+    // ghost
+    if(this.alive){
+      let gy = this.py;
+      while(!this.collide(this.piece.m, this.px, gy+1)) gy++;
+      this.drawPieceOutline(this.piece.m, this.px, gy);
+      this.drawPiece(this.piece.m, this.px, this.py, this.piece.color);
+    }
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    for(let c=0;c<=COLS;c++){ ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL,ROWS*CELL); ctx.stroke(); }
+    for(let r=0;r<=ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,r*CELL); ctx.lineTo(COLS*CELL,r*CELL); ctx.stroke(); }
+
+    if(!this.alive){
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+      ctx.fillStyle = '#ff2ea6';
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TOPPED OUT', this.canvas.width/2, this.canvas.height/2);
+    }
+
+    this.scoreEl.textContent = this.score;
+    this.linesEl.textContent = this.lines;
+  }
+  drawPiece(m,px,py,color){
+    for(let r=0;r<m.length;r++) for(let c=0;c<m[r].length;c++) if(m[r][c]) this.drawCell(px+c,py+r,color);
+  }
+  drawPieceOutline(m,px,py){
+    this.ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    for(let r=0;r<m.length;r++){
+      for(let c=0;c<m[r].length;c++){
+        if(m[r][c]){
+          const x=(px+c)*CELL, y=(py+r)*CELL;
+          if(y>=0) this.ctx.strokeRect(x+1,y+1,CELL-2,CELL-2);
+        }
+      }
+    }
+  }
+  drawCell(c,r,color){
+    if(r<0) return;
+    const x=c*CELL, y=r*CELL;
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(x+1,y+1,CELL-2,CELL-2);
+    this.ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    this.ctx.fillRect(x+1,y+1,CELL-2,3);
+  }
+}
+
+/* ================== GAME SETUP ================== */
+let p1, p2, running = false, rafId = null, lastTime = 0;
+
+document.getElementById('joinBtn').addEventListener('click', ()=>{
+  ensureAudio();
+  const room = document.getElementById('roomCode').value || 'ROOM';
+  const n1 = document.getElementById('p1name').value || 'Player 1';
+  const n2 = document.getElementById('p2name').value || 'Player 2';
+  document.getElementById('joinScreen').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'flex';
+  document.getElementById('roomLine').textContent = 'Room: ' + room;
+  startMatch(n1, n2);
+});
+
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  document.getElementById('status').style.display='none';
+  document.getElementById('restartBtn').style.display='none';
+  startMatch(p1.name, p2.name);
+});
+
+function startMatch(n1, n2){
+  p1 = new Player('board1', n1, {left:'a',right:'d',down:'s',rotate:'w',drop:' '},
+      document.getElementById('score1'), document.getElementById('lines1'),
+      document.getElementById('warn1'), document.getElementById('p1title'));
+  p2 = new Player('board2', n2, {left:'ArrowLeft',right:'ArrowRight',down:'ArrowDown',rotate:'ArrowUp',drop:'Enter'},
+      document.getElementById('score2'), document.getElementById('lines2'),
+      document.getElementById('warn2'), document.getElementById('p2title'));
+  p1.spawn(); p2.spawn();
+  running = true;
+  lastTime = performance.now();
+  startBgLoop();
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+function checkComeback(){
+  [[p1,p2],[p2,p1]].forEach(([leader, trailer])=>{
+    const diff = leader.score - trailer.score;
+    const tier = Math.floor(diff / GARBAGE_THRESHOLD);
+    if(tier > trailer.lastGarbageLevel && trailer.alive){
+      const rowsToAdd = tier - trailer.lastGarbageLevel;
+      trailer.addGarbage(Math.min(rowsToAdd, 4));
+      trailer.lastGarbageLevel = tier;
+    }
+    // reset trailer's counter down if they catch up (diff shrinks)
+    if(tier < trailer.lastGarbageLevel) trailer.lastGarbageLevel = Math.max(0, tier);
+    trailer.warnEl.style.visibility = diff >= GARBAGE_THRESHOLD ? 'visible' : 'hidden';
+  });
+}
+
+function loop(t){
+  const dt = t - lastTime;
+  lastTime = t;
+  if(running){
+    [p1,p2].forEach(p=>{
+      if(!p.alive) return;
+      p.dropTimer += dt;
+      if(p.dropTimer > p.dropInterval){
+        p.dropTimer = 0;
+        if(!p.collide(p.piece.m, p.px, p.py+1)) p.py++;
+        else p.lock();
+      }
+    });
+    checkComeback();
+    p1.draw(); p2.draw();
+
+    if(!p1.alive || !p2.alive){
+      endMatch();
+      return;
+    }
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function endMatch(){
+  running = false;
+  stopBgLoop();
+  sfx.gameover();
+  const statusEl = document.getElementById('status');
+  let msg;
+  if(!p1.alive && !p2.alive) msg = "DOUBLE TOP-OUT — DRAW";
+  else if(!p1.alive) msg = p2.name.toUpperCase() + " WINS!";
+  else msg = p1.name.toUpperCase() + " WINS!";
+  statusEl.textContent = msg;
+  statusEl.style.display = 'block';
+  document.getElementById('restartBtn').style.display = 'inline-block';
+}
+
+/* ================== INPUT ================== */
+document.addEventListener('keydown', (e)=>{
+  if(!running) return;
+  if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.key)) e.preventDefault();
+  if(!p1.alive && !p2.alive) return;
+
+  if(p1.alive){
+    if(e.key === p1.keys.left) p1.move(-1);
+    else if(e.key === p1.keys.right) p1.move(1);
+    else if(e.key === p1.keys.down) p1.softDrop();
+    else if(e.key === p1.keys.rotate) p1.rotate();
+    else if(e.key === p1.keys.drop) p1.hardDrop();
+  }
+  if(p2.alive){
+    if(e.key === p2.keys.left) p2.move(-1);
+    else if(e.key === p2.keys.right) p2.move(1);
+    else if(e.key === p2.keys.down) p2.softDrop();
+    else if(e.key === p2.keys.rotate) p2.rotate();
+    else if(e.key === p2.keys.drop) p2.hardDrop();
+  }
+});
+</script>
+</body>
+</html>
